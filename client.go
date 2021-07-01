@@ -3,8 +3,17 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
+)
+
+const (
+	// Maximum message size allowed.
+	maxMessageSize = 512
+
+	// Time allowed to write a message.
+	writeWait = 10 * time.Second
 )
 
 var upgrader = websocket.Upgrader{
@@ -24,9 +33,30 @@ type Client struct {
 	queueMessage chan Message
 }
 
-func (c *Client) readWS() {}
+func (c *Client) readWS() {
+	defer func() {
+		c.hub.unregister <- c
+		c.conn.Close()
+	}()
 
-func (c *Client) writeWS() {}
+	c.conn.SetReadLimit(maxMessageSize)
+
+	for {
+		message := Message{}
+		if err := c.conn.ReadJSON(&message); err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Println("can't read the message: ", err)
+			}
+			return
+		}
+
+		c.hub.broadcast <- message
+	}
+}
+
+func (c *Client) writeWS() {
+
+}
 
 func handleWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	nickname := r.URL.Query()["nickname"]
