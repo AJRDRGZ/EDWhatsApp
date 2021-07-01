@@ -55,7 +55,25 @@ func (c *Client) readWS() {
 }
 
 func (c *Client) writeWS() {
+	defer func() {
+		c.conn.Close()
+	}()
 
+	for {
+		select {
+		case message, isOpen := <-c.queueMessage:
+			if !isOpen {
+				// returns because the channel was closed by the hub
+				return
+			}
+
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.WriteJSON(message); err != nil {
+				log.Println("can't write the message into ws: ", err)
+				return
+			}
+		}
+	}
 }
 
 func handleWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
