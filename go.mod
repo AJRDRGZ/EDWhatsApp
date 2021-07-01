@@ -1,3 +1,5 @@
 module github.com/AJRDRGZ/EDWhatsApp
 
 go 1.15
+
+require github.com/gorilla/websocket v1.4.2
