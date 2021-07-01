@@ -46,7 +46,7 @@ func handleWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		nickname:     nickname[0],
 		hub:          hub,
 		conn:         conn,
-		queueMessage: make(chan Message),
+		queueMessage: make(chan Message, 2),
 	}
 
 	client.hub.register <- client
